@@ -1,3 +1,4 @@
+
 <template>
    <div class="login-wrap">
     <!-- 给组件加 class，会把这个 class 作用到组件的根元素上 -->
@@ -5,19 +6,39 @@
       <div class="form-head">
         <img src="../logo_index.png" alt="黑马头条号">
       </div>
-      <el-form class="form-content" ref="form" :model="form">
-        <el-form-item>
+      <!--
+        配置校验规则
+          rules 规则对象配置到 el-form 上
+          prop 校验字段配置到 el-form-item 上
+        JavaScript 触发验证
+          给 el-form 添加 ref
+          this.$refs['ref名字'].validate(valid => {}) 触发验证
+       -->
+      <el-form
+      class="form-content"
+      ref="form"
+      :model="form"
+      :rules="rules"
+      >
+        <el-form-item prop='mobile'>
           <el-input v-model="form.mobile" placeholder="手机号"></el-input>
         </el-form-item>
 
-        <el-form-item>
+        <el-form-item prop='code'>
           <!-- el-col 栅格布局,一共24列，:span 用来指定占用的大小，:offset 用来制动偏移量 -->
           <el-col :span="14">
           <el-input v-model="form.code" placeholder="验证码"></el-input>
           </el-col>
           <el-col :offset="1" :span="9">
-            <el-button @click="handleSendCode">获取验证码</el-button>
+            <el-button
+            @click="handleSendCode"
+            :disabled='!!codeTimer'
+            >{{ codeTimer ? `剩余${codeTimeSeconds}秒` : '获取验证码' }}</el-button>
           </el-col>
+        </el-form-item>
+        <el-form-item prop='agree'>
+          <el-checkbox class='agree-checkbox' v-model='form.agree'></el-checkbox>
+          <span class="agree-text">我已阅读并同意<a href="#">用户协议</a>和<a href="#">隐私条款</a></span>
         </el-form-item>
         <el-form-item>
           <el-button class="btn-login" type="primary" @click="handleLogin">登录</el-button>
@@ -30,19 +51,48 @@
 <script>
 import axios from 'axios'
 import '@/vendor/gt' // 引入极验 JavaScript SDK 文件，通过 window.initGeetest 使用
+const initCodeTimeSeconds = 3
 
 export default {
   name: 'AppLogin',
   data() {
     return {
-      form: {
+      form: { // 表单数据对象
         mobile: '',
-        code: ''
-      }
+        code: '',
+        agree: ''
+      },
+      rules: { // 验证规则对象
+        mobile: [
+          { required: true, message: '请输入手机号', trigger: 'blur' },
+          // { len: 11, message: '长度必须为11位', trigger: 'blur' }
+          { pattern: /\d{11}/, message: '请输入有效的手机号', trigger: 'blur' }
+        ],
+        code: [
+          { required: true, message: '请输入验证码', trigger: 'blur' },
+          // { len: 6, message: '长度为必须6位', trigger: 'blur' }
+          { pattern: /\d{6}/, message: '请输入正确的验证码', trigger: 'blur' }
+        ],
+        agree: [
+          { required: true, message: '请同意用户协议' },
+          { pattern: /true/, message: '请同意用户协议' }
+        ]
+      },
+      codeTimer: null, // 倒计时定时器
+      codeTimeSeconds: initCodeTimeSeconds // 倒计时事件
     }
   },
   methods: {
     handleLogin() {
+      this.$refs['form'].validate(valid => {
+        if (!valid) {
+          return
+        }
+        // 表单验证通过，提交登录请求
+        this.submitLogin()
+      })
+    },
+    submitLogin () {
       axios({
         method: 'POST',
         url: `http://ttapi.research.itcast.cn/mp/v1_0/authorizations`,
@@ -63,6 +113,20 @@ export default {
         }) // >= 400 的状态码都会进入这里
     },
     handleSendCode () {
+      // 验证手机号是否有效
+      this.$refs['form'].validateField('mobile', errorMessage => {
+        if (errorMessage.trim().length > 0) {
+          return
+        }
+        // 验证通过，初始化显示验证码
+        this.showGeetest()
+      })
+    },
+    /*
+      验证通过，初始化显示人机交互验证码
+    */
+    showGeetest () {
+      // 任何函数中的 function 内部的 this 指向 window
       const { mobile } = this.form
       axios({
         method: 'GET',
@@ -75,11 +139,11 @@ export default {
           offline: !data.success,
           new_captcha: data.captcha,
           product: 'bind' // 隐藏，直接弹出式
-        }, function (captchaObj) {
-          captchaObj.onReady(function() {
+        }, captchaObj => {
+          captchaObj.onReady(() => {
             // 验证码ready之后才能调用verify方法显示验证码
             captchaObj.verify() // 弹出验证码内容框
-          }).onSuccess(function() {
+          }).onSuccess(() => {
             // your code
             const {
               geetest_challenge: challenge,
@@ -95,6 +159,8 @@ export default {
                 seccode
               }
             }).then(res => {
+              // 发送短信成功，开始倒计时
+              this.codeCountDown()
               console.log(res.data)
             })
           }).onError(function() {
@@ -104,6 +170,22 @@ export default {
           // 在这里注册 "发送验证码" 按钮的点击事件，然后验证用户输入的手机号是否正确
         })
       })
+    },
+    /*
+      验证码倒计时
+    */
+    codeCountDown () {
+      this.codeTimer = window.setInterval(() => {
+        this.codeTimeSeconds--
+        if (this.codeTimeSeconds <= 0) {
+          // 清除定时器
+          window.clearInterval(this.codeTimer)
+          // 让倒计时的事件回归初始状态
+          this.codeTimeSeconds = initCodeTimeSeconds
+          // 将存储定时器引用的变量重新赋值为 null
+          this.codeTimer = null
+        }
+      }, 1000)
     }
   }
 }
@@ -134,6 +216,14 @@ export default {
     border-radius: 10px;
     .btn-login {
       width: 100%;
+    }
+    span {
+      color: #ccc;
+      font-size: 20px;
+      a {
+        color:#3a8ee6;
+        text-decoration: none;
+      }
     }
   }
 }
