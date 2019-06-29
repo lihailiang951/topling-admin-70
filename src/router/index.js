@@ -1,9 +1,11 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+import nprogress from 'nprogress'
+import { getUser } from '@/utils/auth'
 
 Vue.use(Router)
 
-export default new Router({
+const router = new Router({
   routes: [
     // {
     //   name: 'home',
@@ -28,6 +30,11 @@ export default new Router({
           name: 'publish',
           path: '/publish',
           component: () => import('@/views/publish')
+        },
+        {
+          name: 'article',
+          path: '/article',
+          component: () => import('@/views/article')
         }
       ]
     },
@@ -40,3 +47,53 @@ export default new Router({
     }
   ]
 })
+
+/*
+  全局前置守卫
+  当你访问路由页面的时候，会先进入这里
+  to 要去哪里的相关数据
+  from 来自哪里的相关数据
+  next 允许通过的方法
+*/
+
+router.beforeEach((to, from, next) => {
+  // 路由当行前， 开启进度条
+  nprogress.start()
+  // const userInfo = window.localStorage.getItem('user_info')
+  const userInfo = getUser()
+  if (to.path !== '/login') {
+    // 如果是非登录页面
+    //   没有登录，跳转到登录页
+    if (!userInfo) {
+      if (from.path === '/login') {
+        nprogress.done()
+      }
+      next({ name: 'login' })
+      // next('/login')
+      // next({ path: '/login' })
+    } else {
+      //    登录了，允许通过
+      next()
+    }
+  } else {
+  // 如果是登录页面
+  //   没有登录，允许通过
+    if (!userInfo) {
+      next()
+    } else {
+      console.log(123)
+      //   登录了，不允许通过
+      // next(false) // 中断当前导航
+      // next({ name: 'home' })
+      window.location.href = '/#/'
+      window.location.reload()
+    }
+  }
+})
+
+router.afterEach((to, from) => {
+  // 路由导航完成，结束进度条
+  nprogress.done()
+})
+
+export default router
