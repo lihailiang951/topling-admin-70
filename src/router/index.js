@@ -76,8 +76,8 @@ router.beforeEach((to, from, next) => {
       next()
     }
   } else {
-  // 如果是登录页面
-  //   没有登录，允许通过
+    // 如果是登录页面
+    //   没有登录，允许通过
     if (!userInfo) {
       next()
     } else {
