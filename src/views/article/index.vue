@@ -40,7 +40,11 @@
           </el-date-picker>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="onSubmit">查询</el-button>
+          <el-button
+            type="primary"
+            @click="handleFilter"
+            :loading="articleLoading"
+            >查询</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -49,7 +53,7 @@
        <!-- 文章列表 -->
     <el-card class="box-card">
       <div slot="header" class="clearfix">
-        <span>一共有xxx条数据</span>
+        <span>一共有<strong>{{ totalCount }}</strong>条数据</span>
         <el-button style="float: right; padding: 3px 0" type="text">操作按钮</el-button>
       </div>
       <!--
@@ -115,9 +119,11 @@
         page-size 配置每页大小，默认是 10
         total 用来配置总记录数
         分页组件会根据每页大小和总记录数进行分页
+        current-page 当前最高的页码，需要和数据保持同步，否则可能会出现数据页码改变，试图页码没变的情况
       -->
       <el-pagination
         background
+        :current-page="page"
         layout="prev, pager, next"
         :page-size="pageSize"
         :total="totalCount"
@@ -194,18 +200,41 @@ export default {
       }
     },
     onSubmit () {},
+    handleFilter () {
+      // 点击查询按钮，根据表单中的数据查询文章列表
+      this.page = 1 // 查询从第一页开始加载数据
+      this.loadArticles()
+    },
     async loadArticles () {
       // 请求开始，加载 loading
       this.articleLoading = true
       // 除了登录相关接口之后，其它接口都必须在请求头中通过 Authorization 字段提供用户 token
       // 当我们登录成功，服务端会生成一个 token 令牌，放到用户信息中
+
+      // 去除无用数据字段
+      const filterDate = {}
+      for (let key in this.filterParams) {
+        const item = this.filterParams[key]
+        if (item !== null && item !== undefined && item !== '') {
+          filterDate[key] = item
+        }
+        // 数据中的 0 参与布尔值运算是 false 不会进来
+        // if (item) {
+        //   filterDate[key] = item
+        // }
+      }
       const data = await this.$http({
         method: 'GET',
         url: '/articles',
         params: {
           page: this.page, // 页码
-          per_page: this.pageSize// 每页大小
+          per_page: this.pageSize, // 每页大小
+          ...filterDate
         }
+        // params: Object.assgin({
+        //   page: this.page, // 页码
+        //   per_page: this.pageSize, // 每页大小
+        // }, filterData)
       })
       this.articles = data.results
       this.totalCount = data.total_count
