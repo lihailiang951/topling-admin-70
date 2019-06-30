@@ -100,10 +100,10 @@ export default {
     },
     async handlePublish (draft) {
       try {
-        if (this.$router.name === 'publish') {
+        if (this.$route.name === 'publish') {
           await this.$http({
             method: 'POST',
-            url: '/article',
+            url: '/articles',
             params: {
               draft
             },
