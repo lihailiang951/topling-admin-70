@@ -1,5 +1,5 @@
 <template>
-    <el-card class="publish-card">
+  <el-card class="publish-card">
     <div slot="header" class="header">
       <span>发布文章</span>
       <div>
@@ -8,14 +8,18 @@
       </div>
     </div>
     <el-row>
-      <el-col :span="10">
+      <el-col :span="16">
         <!-- 表单 -->
         <el-form ref="form" :model="articleForm" label-width="80px">
           <el-form-item label="标题">
             <el-input v-model="articleForm.title"></el-input>
           </el-form-item>
           <el-form-item label="内容">
-            <el-input type="textarea" v-model="articleForm.content"></el-input>
+             <!-- bidirectional data binding（双向数据绑定） -->
+            <quill-editor v-model="articleForm.content"
+              ref="myQuillEditor"
+              :options="editorOption">
+            </quill-editor>
           </el-form-item>
           <el-form-item label="封面">
             <!-- <el-radio-group>
@@ -24,10 +28,23 @@
             </el-radio-group> -->
           </el-form-item>
           <el-form-item label="频道">
-            <el-select v-model="articleForm.channel_id" placeholder="请选择活动区域">
+            <!--
+              v-model="articleForm.channel_id" 相当于
+              v-bind:value="articleForm.channel_id"
+                绑定一个名字叫 value 的数据给子组件
+              v-on:input="articleForm.channel_id = $event"
+                默认监听子组件的 input 自定义事件，事件发生以后，将事件参数赋值给你绑定的数据
+             -->
+            <article-channel v-model="articleForm.channel_id"></article-channel>
+            <!--
+              在组件上 v-model
+                数据会影响视图
+                视图也会影响数据
+             -->
+            <!-- <el-select v-model="articleForm.channel_id" placeholder="请选择活动区域">
               <el-option label="区域一" value="shanghai"></el-option>
               <el-option label="区域二" value="beijing"></el-option>
-            </el-select>
+            </el-select> -->
           </el-form-item>
         </el-form>
         <!-- /表单 -->
@@ -37,22 +54,50 @@
 </template>
 
 <script>
+import ArticleChannel from '@/components/article-channel'
+// require styles
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+import './quill.user.css'
+import { quillEditor } from 'vue-quill-editor'
 export default {
   name: 'AppPublish',
+  components: {
+    ArticleChannel,
+    quillEditor
+  },
   data () {
     return {
       articleForm: {
         title: '', // 标题
         content: '', // 内容
-        channel_id: 3, // 频道
+        channel_id: '', // 频道
         cover: { // 封面
           type: 0, // 封面类型 -1:自动，0-无图，1-1张，3-3张
           images: []
         }
-      }
+      },
+      editorOption: {} // 富文本编辑器配置选项
+    }
+  },
+  created () {
+    if (this.$router.name === 'publish-edit') {
+      this.loadArticle()
     }
   },
   methods: {
+    async loadArticle () {
+      try {
+        const data = await this.$http({
+          method: 'GET',
+          url: `/articles/$(this.$router.params.id)`
+        })
+        this.articleForm = data
+      } catch (err) {
+        this.$message.error('获取文章失败')
+      }
+    },
     async handlePublish (draft) {
       try {
         await this.$http({
@@ -74,7 +119,6 @@ export default {
   }
 }
 </script>
-
 <style lang="less" scoped>
 .publish-card {
   min-height: 100%;

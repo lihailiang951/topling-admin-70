@@ -16,6 +16,7 @@
     "sass": "^1.21.0",
     "sass-loader": "^7.1.0",
     "vue": "^2.6.10",
+    "vue-quill-editor": "^3.0.6",
     "vue-router": "^3.0.3"
   },
   "devDependencies": {

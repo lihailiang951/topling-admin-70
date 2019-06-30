@@ -1,7 +1,6 @@
-
 <template>
   <div>
-       <!-- 数据筛选 -->
+    <!-- 数据筛选 -->
     <el-card class="filter-card">
       <div slot="header" class="clearfix">
         <span>数据筛选</span>
@@ -19,14 +18,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="频道">
-          <el-select v-model="filterParams.channel_id" placeholder="请选择活动区域">
-            <el-option
-            v-for="item in channels"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id"
-            ></el-option>
-          </el-select>
+          <article-channel v-model="filterParams.channel_id"></article-channel>
         </el-form-item>
         <el-form-item label="时间">
           <el-date-picker
@@ -44,13 +36,12 @@
             type="primary"
             @click="handleFilter"
             :loading="articleLoading"
-            >查询</el-button>
+          >查询</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <!-- 数据筛选 -->
-
-       <!-- 文章列表 -->
+    <!-- 文章列表 -->
     <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>一共有<strong>{{ totalCount }}</strong>条数据</span>
@@ -109,7 +100,12 @@
         <el-table-column
           label="操作">
           <template slot-scope="scope">
-            <el-button size="mini" type="primary" plain>修改</el-button>
+             <el-button
+              size="mini"
+              type="primary"
+              plain
+              @click="$router.push(`/publish/${scope.row.id}`)"
+            >修改</el-button>
             <el-button size="mini" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -119,7 +115,7 @@
         page-size 配置每页大小，默认是 10
         total 用来配置总记录数
         分页组件会根据每页大小和总记录数进行分页
-        current-page 当前最高的页码，需要和数据保持同步，否则可能会出现数据页码改变，试图页码没变的情况
+        current-page 当前高亮的页码，需要和数据保持同步，否则可能会出现数据页码改变，视图页码没变的情况
       -->
       <el-pagination
         background
@@ -137,8 +133,12 @@
 </template>
 
 <script>
+import ArticleChannel from '@/components/article-channel'
 export default {
   name: 'ArticleList',
+  components: {
+    ArticleChannel
+  },
   data () {
     return {
       articles: [],
@@ -174,13 +174,11 @@ export default {
         begin_pubdate: '', // 开始时间
         end_pubdate: '' // 结束时间
       },
-      range_date: '', // 时间范围绑定值，这个字段的意义是为了绑定 date 组件触发 change 事件
-      channels: [] // 所有频道
+      range_date: '' // 时间范围绑定值，这个字段的意义是为了绑定 date 组件触发 change 事件
     }
   },
   created () {
     this.loadArticles()
-    this.loadChannels()
   },
   methods: {
     async handleDelete (item) {
@@ -222,24 +220,11 @@ export default {
     },
     handleDateChange (value) {
       this.filterParams.begin_pubdate = value[0]
-      this.filterParamsend_pubdate = value[1]
+      this.filterParams.end_pubdate = value[1]
     },
-    async loadChannels() {
-      try {
-        const data = await this.$http({
-          method: 'GET',
-          url: '/channels'
-        })
-        this.channels = data.channels
-      } catch (err) {
-        console.log(err)
-        this.$message.error('获取频道数据失败')
-      }
-    },
-    onSubmit () {},
     handleFilter () {
       // 点击查询按钮，根据表单中的数据查询文章列表
-      this.page = 1 // 查询从第一页开始加载数据
+      this.page = 1 // 查询从第1页开始加载数据
       this.loadArticles()
     },
     async loadArticles () {
@@ -248,7 +233,6 @@ export default {
         this.articleLoading = true
         // 除了登录相关接口之后，其它接口都必须在请求头中通过 Authorization 字段提供用户 token
         // 当我们登录成功，服务端会生成一个 token 令牌，放到用户信息中
-
         // 去除无用数据字段
         const filterData = {}
         for (let key in this.filterParams) {
@@ -256,10 +240,10 @@ export default {
           if (item !== null && item !== undefined && item !== '') {
             filterData[key] = item
           }
-        // 数据中的 0 不参与布尔值运算时 false 不会进来
-        // if (item) {
-          // filterData[key] = item
-        // }
+          // 数据中的 0 参与布尔值运算是 false。不会进来
+          // if (item) {
+          //   filterData[key] = item
+          // }
         }
         const data = await this.$http({
           method: 'GET',
@@ -291,7 +275,6 @@ export default {
   }
 }
 </script>
-
 <style lang="less" scoped>
 .filter-card {
   margin-bottom: 15px;
