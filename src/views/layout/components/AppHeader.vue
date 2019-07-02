@@ -4,8 +4,8 @@
     <el-col :span="5" :offset="5">
     <el-dropdown trigger="click">
       <span class="el-dropdown-link">
-      <img width="30" :src="userInfo.photo">
-        {{ userInfo.name }}<i class="el-icon-arrow-down el-icon--right"></i>
+         <img width="30" :src="$store.state.user.photo">
+          {{ $store.state.user.name }}<i class="el-icon-arrow-down el-icon--right"></i>
       </span>
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item>用户设置</el-dropdown-item>
@@ -20,12 +20,13 @@
 </template>
 
 <script>
-import { removeUser, getUser } from '@/utils/auth'
+// import { removeUser, getUser } from '@/utils/auth'
+import { removeUser } from '@/utils/auth'
 export default {
   name: 'AppHeader',
   data () {
     return {
-      userInfo: {}
+      // userInfo: {}
     }
   },
   created () {
@@ -33,11 +34,11 @@ export default {
     //   name: '123456789',
     //   photo: 'http://toutiao.meiduo.site/Fkj6tQi3xJwVXilu2swCElotfdCi'
     // }
-    this.userInfo = getUser()
+    // this.userInfo = getUser()
   },
   methods: {
     handleLogout () {
-      this.$confirm('你确定退出╭(╯^╰)╮?', '拜拜0提示', {
+      this.$confirm('你确定退出╭(╯^╰)╮?', '拜拜提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
